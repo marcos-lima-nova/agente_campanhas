@@ -1,0 +1,257 @@
+2026-01-19 09:55:22,428 [INFO] rag_system: Starting ingestion process...
+2026-01-19 09:55:22,430 [INFO] rag_system: Created new document store.
+2026-01-19 09:55:22,734 [INFO] rag_system: Processing AN JO_Bem informado você escolhe bem_CNN Brasil.docx.pdf...
+2026-01-19 09:55:22,921 [INFO] rag_system: Processing AN RV – Feel Brazil_Apex.docx...
+2026-01-19 09:55:22,944 [INFO] rag_system: Indexing 2 chunks...
+2026-01-19 09:55:23,134 [INFO] haystack.core.pipeline.base: Warming up component embedder...
+2026-01-19 09:55:23,134 [INFO] sentence_transformers.SentenceTransformer: Load pretrained SentenceTransformer: BAAI/bge-m3
+2026-01-19 09:56:51,498 [INFO] haystack.core.pipeline.pipeline: Running component embedder
+2026-01-19 09:56:52,098 [INFO] haystack.core.pipeline.pipeline: Running component writer
+2026-01-19 09:57:55,521 [INFO] rag_system: Starting ingestion process...
+2026-01-19 10:09:41,367 [INFO] rag_system: Starting ingestion process...
+2026-01-19 10:09:56,646 [INFO] rag_system: Starting ingestion process...
+2026-01-19 10:09:56,647 [INFO] rag_system: Created new document store.
+2026-01-19 10:09:56,787 [INFO] rag_system: Processing AN JO_Bem informado você escolhe bem_CNN Brasil.docx.pdf...
+2026-01-19 10:09:56,894 [INFO] rag_system: Processing AN RV – Feel Brazil_Apex.docx...
+2026-01-19 10:09:56,898 [INFO] rag_system: Indexing 2 chunks...
+2026-01-19 10:09:56,957 [INFO] haystack.core.pipeline.base: Warming up component embedder...
+2026-01-19 10:09:56,958 [INFO] sentence_transformers.SentenceTransformer: Load pretrained SentenceTransformer: BAAI/bge-m3
+2026-01-19 10:10:10,496 [INFO] haystack.core.pipeline.pipeline: Running component embedder
+2026-01-19 10:10:11,074 [INFO] haystack.core.pipeline.pipeline: Running component writer
+2026-01-19 10:14:30,949 [INFO] rag_system: Starting ingestion process...
+2026-01-19 10:14:30,950 [INFO] rag_system: Created new document store.
+2026-01-19 10:14:31,142 [INFO] rag_system: Skipping AN JO_Bem informado você escolhe bem_CNN Brasil.docx.pdf (already ingested).
+2026-01-19 10:14:31,142 [INFO] rag_system: Skipping AN RV – Feel Brazil_Apex.docx (already ingested).
+2026-01-19 10:14:31,142 [INFO] rag_system: No new content to index.
+2026-01-19 10:14:56,055 [INFO] rag_system: Starting ingestion process...
+2026-01-19 10:14:56,055 [INFO] rag_system: Created new document store.
+2026-01-19 10:14:56,231 [INFO] rag_system: Processing AN JO_Bem informado você escolhe bem_CNN Brasil.docx.pdf...
+2026-01-19 10:14:56,352 [INFO] rag_system: Processing AN RV – Feel Brazil_Apex.docx...
+2026-01-19 10:14:56,357 [INFO] rag_system: Indexing 2 chunks...
+2026-01-19 10:14:56,411 [INFO] haystack.core.pipeline.base: Warming up component embedder...
+2026-01-19 10:14:56,411 [INFO] sentence_transformers.SentenceTransformer: Load pretrained SentenceTransformer: BAAI/bge-m3
+2026-01-19 10:15:09,261 [INFO] haystack.core.pipeline.pipeline: Running component embedder
+2026-01-19 10:15:09,710 [INFO] haystack.core.pipeline.pipeline: Running component writer
+2026-01-19 10:15:09,712 [INFO] rag_system: Ingestion completed and state persisted.
+2026-01-19 10:42:45,632 [INFO] rag_system: Starting ingestion process...
+2026-01-19 10:42:45,632 [INFO] rag_system: Created new document store.
+2026-01-19 10:42:45,830 [INFO] rag_system: Skipping AN JO_Bem informado você escolhe bem_CNN Brasil.docx.pdf (already ingested).
+2026-01-19 10:42:45,830 [INFO] rag_system: Skipping AN RV – Feel Brazil_Apex.docx (already ingested).
+2026-01-19 10:42:45,830 [INFO] rag_system: No new content to index.
+2026-01-19 10:42:58,155 [INFO] rag_system: Starting ingestion process...
+2026-01-19 10:42:58,155 [INFO] rag_system: Created new document store.
+2026-01-19 10:42:58,355 [INFO] rag_system: Processing AN JO_Bem informado você escolhe bem_CNN Brasil.docx.pdf...
+2026-01-19 10:42:58,469 [INFO] rag_system: Processing AN RV – Feel Brazil_Apex.docx...
+2026-01-19 10:42:58,473 [INFO] rag_system: Indexing 2 chunks...
+2026-01-19 10:42:58,528 [INFO] haystack.core.pipeline.base: Warming up component embedder...
+2026-01-19 10:42:58,529 [INFO] sentence_transformers.SentenceTransformer: Load pretrained SentenceTransformer: BAAI/bge-m3
+2026-01-19 10:43:10,333 [INFO] haystack.core.pipeline.pipeline: Running component embedder
+2026-01-19 10:43:10,758 [INFO] haystack.core.pipeline.pipeline: Running component writer
+2026-01-19 10:43:10,759 [WARNING] rag_system: save_to_disk failed: [Errno 21] Is a directory: 'vectorstore'. Falling back to json dump.
+2026-01-19 10:43:10,759 [INFO] rag_system: Document store persisted via json dump.
+2026-01-19 10:43:10,760 [INFO] rag_system: Ingestion completed and state persisted.
+2026-01-19 11:16:49,366 [INFO] rag_system: Starting ingestion process...
+2026-01-19 11:16:49,366 [INFO] rag_system: Created new document store.
+2026-01-19 11:16:49,516 [INFO] rag_system: Processing AN JO_Bem informado você escolhe bem_CNN Brasil.docx.pdf...
+2026-01-19 11:16:49,544 [INFO] rag_system: Processing AN RV – Feel Brazil_Apex.docx...
+2026-01-19 11:16:49,551 [INFO] rag_system: Indexing 2 chunks...
+2026-01-19 11:16:49,606 [INFO] haystack.core.pipeline.base: Warming up component embedder...
+2026-01-19 11:16:49,607 [INFO] sentence_transformers.SentenceTransformer: Load pretrained SentenceTransformer: BAAI/bge-m3
+2026-01-19 11:17:02,447 [INFO] haystack.core.pipeline.pipeline: Running component embedder
+2026-01-19 11:17:02,885 [INFO] haystack.core.pipeline.pipeline: Running component writer
+2026-01-19 11:17:02,888 [WARNING] rag_system: save_to_disk failed: [Errno 21] Is a directory: 'vectorstore'. Falling back to json dump.
+2026-01-19 11:17:02,889 [INFO] rag_system: Document store persisted via json dump.
+2026-01-19 11:17:02,889 [INFO] rag_system: Ingestion completed and state persisted.
+2026-01-19 11:26:06,497 [INFO] rag_system: Starting ingestion process...
+2026-01-19 11:26:06,497 [INFO] rag_system: Initialized in-memory document store for indexing.
+2026-01-19 11:26:06,632 [WARNING] rag_system: Chroma adapter initialization failed: [91mYou are using a deprecated configuration of Chroma.
+
+[94mIf you do not have data you wish to migrate, you only need to change how you construct
+your Chroma client. Please see the "New Clients" section of https://docs.trychroma.com/deployment/migration.
+________________________________________________________________________________________________
+
+If you do have data you wish to migrate, we have a migration tool you can use in order to
+migrate your data to the new Chroma architecture.
+Please `pip install chroma-migrate` and run `chroma-migrate` to migrate your data and then
+change how you construct your Chroma client.
+
+See https://docs.trychroma.com/deployment/migration for more information or join our discord at https://discord.gg/MMeYNTmh3x for help![0m
+2026-01-19 11:26:06,633 [INFO] rag_system: Processing AN JO_Bem informado você escolhe bem_CNN Brasil.docx.pdf...
+2026-01-19 11:26:06,660 [INFO] rag_system: Processing AN RV – Feel Brazil_Apex.docx...
+2026-01-19 11:26:06,664 [INFO] rag_system: Indexing 2 chunks...
+2026-01-19 11:26:06,710 [INFO] haystack.core.pipeline.base: Warming up component embedder...
+2026-01-19 11:26:06,710 [INFO] sentence_transformers.SentenceTransformer: Load pretrained SentenceTransformer: BAAI/bge-m3
+2026-01-19 11:26:17,364 [INFO] haystack.core.pipeline.pipeline: Running component embedder
+2026-01-19 11:26:17,773 [INFO] haystack.core.pipeline.pipeline: Running component writer
+2026-01-19 11:26:17,774 [WARNING] rag_system: save_to_disk failed: [Errno 21] Is a directory: 'vectorstore'. No vectorstore persisted.
+2026-01-19 11:26:17,774 [INFO] rag_system: Ingestion completed and state persisted.
+2026-01-19 11:27:36,489 [INFO] rag_system: Starting ingestion process...
+2026-01-19 11:27:36,490 [INFO] rag_system: Initialized in-memory document store for indexing.
+2026-01-19 11:27:36,629 [WARNING] rag_system: Chroma adapter initialization failed: [91mYou are using a deprecated configuration of Chroma.
+
+[94mIf you do not have data you wish to migrate, you only need to change how you construct
+your Chroma client. Please see the "New Clients" section of https://docs.trychroma.com/deployment/migration.
+________________________________________________________________________________________________
+
+If you do have data you wish to migrate, we have a migration tool you can use in order to
+migrate your data to the new Chroma architecture.
+Please `pip install chroma-migrate` and run `chroma-migrate` to migrate your data and then
+change how you construct your Chroma client.
+
+See https://docs.trychroma.com/deployment/migration for more information or join our discord at https://discord.gg/MMeYNTmh3x for help![0m
+2026-01-19 11:27:36,629 [INFO] rag_system: Skipping AN JO_Bem informado você escolhe bem_CNN Brasil.docx.pdf (already ingested).
+2026-01-19 11:27:36,630 [INFO] rag_system: Skipping AN RV – Feel Brazil_Apex.docx (already ingested).
+2026-01-19 11:27:36,630 [INFO] rag_system: No new content to index.
+2026-01-19 11:33:57,714 [INFO] rag_system: Starting ingestion process...
+2026-01-19 11:33:57,715 [INFO] rag_system: Initialized in-memory document store for indexing.
+2026-01-19 11:33:57,862 [INFO] chromadb.telemetry.product.posthog: Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+2026-01-19 11:33:58,024 [INFO] rag_system: Skipping AN JO_Bem informado você escolhe bem_CNN Brasil.docx.pdf (already ingested).
+2026-01-19 11:33:58,024 [INFO] rag_system: Skipping AN RV – Feel Brazil_Apex.docx (already ingested).
+2026-01-19 11:33:58,024 [INFO] rag_system: No new content to index.
+2026-01-19 11:35:00,308 [INFO] rag_system: Starting ingestion process...
+2026-01-19 11:35:00,308 [INFO] rag_system: Initialized in-memory document store for indexing.
+2026-01-19 11:35:00,455 [INFO] chromadb.telemetry.product.posthog: Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+2026-01-19 11:35:00,569 [INFO] rag_system: Processing AN JO_Bem informado você escolhe bem_CNN Brasil.docx.pdf...
+2026-01-19 11:35:00,600 [INFO] rag_system: Processing AN RV – Feel Brazil_Apex.docx...
+2026-01-19 11:35:00,604 [INFO] rag_system: Indexing 2 chunks...
+2026-01-19 11:35:00,604 [INFO] haystack.core.pipeline.base: Warming up component embedder...
+2026-01-19 11:35:00,605 [INFO] sentence_transformers.SentenceTransformer: Load pretrained SentenceTransformer: BAAI/bge-m3
+2026-01-19 11:35:11,285 [INFO] haystack.core.pipeline.pipeline: Running component embedder
+2026-01-19 11:35:11,693 [INFO] haystack.core.pipeline.pipeline: Running component writer
+2026-01-19 11:35:11,695 [INFO] sentence_transformers.SentenceTransformer: Use pytorch device_name: cuda:0
+2026-01-19 11:35:11,695 [INFO] sentence_transformers.SentenceTransformer: Load pretrained SentenceTransformer: BAAI/bge-m3
+2026-01-19 11:35:18,400 [WARNING] rag_system: Failed to persist to Chroma: Expected embeddings to be a list of floats or ints, a list of lists, a numpy array, or a list of numpy arrays, got [tensor([-0.0307,  0.0205, -0.0203,  ...,  0.0004, -0.0461, -0.0231],
+       device='cuda:0'), tensor([-0.0622, -0.0423,  0.0007,  ...,  0.0368, -0.0825, -0.0383],
+       device='cuda:0')] in add.
+2026-01-19 11:35:18,400 [INFO] rag_system: Ingestion completed and state persisted.
+2026-01-19 15:59:37,720 [INFO] rag_system: Starting ingestion process...
+2026-01-19 15:59:37,721 [INFO] rag_system: Initialized in-memory document store for indexing.
+2026-01-19 15:59:37,903 [INFO] chromadb.telemetry.product.posthog: Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+2026-01-19 15:59:38,052 [INFO] rag_system: Skipping AN JO_Bem informado você escolhe bem_CNN Brasil.docx.pdf (already ingested).
+2026-01-19 15:59:38,053 [INFO] rag_system: Processing AÇÃO DE ATIVAÇÃO_Copa dos Especialista_Sebrae.docx...
+2026-01-19 15:59:38,065 [INFO] rag_system: Skipping AN RV – Feel Brazil_Apex.docx (already ingested).
+2026-01-19 15:59:38,065 [INFO] rag_system: Indexing 2 chunks...
+2026-01-19 15:59:38,065 [INFO] haystack.core.pipeline.base: Warming up component embedder...
+2026-01-19 15:59:38,066 [INFO] sentence_transformers.SentenceTransformer: Load pretrained SentenceTransformer: BAAI/bge-m3
+2026-01-19 15:59:49,871 [INFO] haystack.core.pipeline.pipeline: Running component embedder
+2026-01-19 15:59:50,332 [INFO] haystack.core.pipeline.pipeline: Running component writer
+2026-01-19 15:59:50,338 [INFO] sentence_transformers.SentenceTransformer: Use pytorch device_name: cuda:0
+2026-01-19 15:59:50,338 [INFO] sentence_transformers.SentenceTransformer: Load pretrained SentenceTransformer: BAAI/bge-m3
+2026-01-19 15:59:58,100 [WARNING] rag_system: Failed to persist to Chroma: Expected embeddings to be a list of floats or ints, a list of lists, a numpy array, or a list of numpy arrays, got [tensor([-0.0252, -0.0141, -0.0391,  ...,  0.0075, -0.0233, -0.0200],
+       device='cuda:0'), tensor([ 0.0077,  0.0139, -0.0507,  ...,  0.0280, -0.0127, -0.0068],
+       device='cuda:0')] in add.
+2026-01-19 15:59:58,101 [INFO] rag_system: Ingestion completed and state persisted.
+2026-01-19 16:30:00,266 [INFO] rag_system: Starting ingestion process...
+2026-01-19 16:30:00,267 [INFO] rag_system: Initialized in-memory document store for indexing.
+2026-01-19 16:30:00,438 [INFO] chromadb.telemetry.product.posthog: Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+2026-01-19 16:30:00,563 [INFO] rag_system: Processing AN JO_Bem informado você escolhe bem_CNN Brasil.docx.pdf...
+2026-01-19 16:30:00,594 [INFO] rag_system: Processing AÇÃO DE ATIVAÇÃO_Copa dos Especialista_Sebrae.docx...
+2026-01-19 16:30:00,602 [INFO] rag_system: Processing AN RV – Feel Brazil_Apex.docx...
+2026-01-19 16:30:00,605 [INFO] rag_system: Indexing 4 chunks...
+2026-01-19 16:30:00,605 [INFO] haystack.core.pipeline.base: Warming up component embedder...
+2026-01-19 16:30:00,606 [INFO] sentence_transformers.SentenceTransformer: Load pretrained SentenceTransformer: BAAI/bge-m3
+2026-01-19 16:30:10,215 [INFO] haystack.core.pipeline.pipeline: Running component embedder
+2026-01-19 16:30:10,829 [INFO] haystack.core.pipeline.pipeline: Running component writer
+2026-01-19 16:30:10,833 [INFO] sentence_transformers.SentenceTransformer: Use pytorch device_name: cuda:0
+2026-01-19 16:30:10,833 [INFO] sentence_transformers.SentenceTransformer: Load pretrained SentenceTransformer: BAAI/bge-m3
+2026-01-19 16:30:16,520 [ERROR] rag_system: Failed to persist to Chroma: Expected embeddings to be a list of floats or ints, a list of lists, a numpy array, or a list of numpy arrays, got [tensor([-0.0307,  0.0205, -0.0203,  ...,  0.0004, -0.0461, -0.0231],
+       device='cuda:0'), tensor([-0.0252, -0.0141, -0.0391,  ...,  0.0075, -0.0233, -0.0200],
+       device='cuda:0'), tensor([ 0.0077,  0.0139, -0.0507,  ...,  0.0280, -0.0127, -0.0068],
+       device='cuda:0'), tensor([-0.0622, -0.0423,  0.0007,  ...,  0.0368, -0.0825, -0.0383],
+       device='cuda:0')] in add.
+Traceback (most recent call last):
+  File "/home/vini/Documents/RAG/src/ingestion/run.py", line 127, in run_ingestion
+    chroma.add_documents(ids=ids, documents=docs, metadatas=metadatas, embeddings=embeddings)
+  File "/home/vini/Documents/RAG/src/vector_store/chroma_store.py", line 46, in add_documents
+    self.collection.add(**kwargs)
+  File "/home/vini/miniconda3/envs/rag/lib/python3.12/site-packages/chromadb/api/models/Collection.py", line 106, in add
+    add_request = self._validate_and_prepare_add_request(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vini/miniconda3/envs/rag/lib/python3.12/site-packages/chromadb/api/models/CollectionCommon.py", line 103, in wrapper
+    return func(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vini/miniconda3/envs/rag/lib/python3.12/site-packages/chromadb/api/models/CollectionCommon.py", line 225, in _validate_and_prepare_add_request
+    add_records = normalize_insert_record_set(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vini/miniconda3/envs/rag/lib/python3.12/site-packages/chromadb/api/types.py", line 404, in normalize_insert_record_set
+    base_record_set = normalize_base_record_set(
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vini/miniconda3/envs/rag/lib/python3.12/site-packages/chromadb/api/types.py", line 376, in normalize_base_record_set
+    embeddings=normalize_embeddings(embeddings),
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vini/miniconda3/envs/rag/lib/python3.12/site-packages/chromadb/api/types.py", line 251, in normalize_embeddings
+    raise ValueError(
+ValueError: Expected embeddings to be a list of floats or ints, a list of lists, a numpy array, or a list of numpy arrays, got [tensor([-0.0307,  0.0205, -0.0203,  ...,  0.0004, -0.0461, -0.0231],
+       device='cuda:0'), tensor([-0.0252, -0.0141, -0.0391,  ...,  0.0075, -0.0233, -0.0200],
+       device='cuda:0'), tensor([ 0.0077,  0.0139, -0.0507,  ...,  0.0280, -0.0127, -0.0068],
+       device='cuda:0'), tensor([-0.0622, -0.0423,  0.0007,  ...,  0.0368, -0.0825, -0.0383],
+       device='cuda:0')] in add.
+2026-01-19 16:30:16,524 [INFO] rag_system: Ingestion completed and state persisted.
+2026-01-19 16:30:49,483 [INFO] rag_system: Starting ingestion process...
+2026-01-19 16:30:49,484 [INFO] rag_system: Initialized in-memory document store for indexing.
+2026-01-19 16:30:49,656 [INFO] chromadb.telemetry.product.posthog: Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+2026-01-19 16:30:49,792 [INFO] rag_system: Processing AN JO_Bem informado você escolhe bem_CNN Brasil.docx.pdf...
+2026-01-19 16:30:49,820 [INFO] rag_system: Processing AÇÃO DE ATIVAÇÃO_Copa dos Especialista_Sebrae.docx...
+2026-01-19 16:30:49,827 [INFO] rag_system: Processing AN RV – Feel Brazil_Apex.docx...
+2026-01-19 16:30:49,830 [INFO] rag_system: Indexing 4 chunks...
+2026-01-19 16:30:49,830 [INFO] haystack.core.pipeline.base: Warming up component embedder...
+2026-01-19 16:30:49,830 [INFO] sentence_transformers.SentenceTransformer: Load pretrained SentenceTransformer: BAAI/bge-m3
+2026-01-19 16:30:55,912 [INFO] haystack.core.pipeline.pipeline: Running component embedder
+2026-01-19 16:30:56,372 [INFO] haystack.core.pipeline.pipeline: Running component writer
+2026-01-19 16:30:56,377 [INFO] sentence_transformers.SentenceTransformer: Use pytorch device_name: cuda:0
+2026-01-19 16:30:56,377 [INFO] sentence_transformers.SentenceTransformer: Load pretrained SentenceTransformer: BAAI/bge-m3
+2026-01-19 16:31:03,009 [ERROR] rag_system: Failed to persist to Chroma: Expected IDs to be unique, found duplicates of: d9c6266dee3bea97918ab6f81ec334be3b1d831183932c02b7955eb4aedf2c13 in add.
+Traceback (most recent call last):
+  File "/home/vini/Documents/RAG/src/ingestion/run.py", line 127, in run_ingestion
+    chroma.add_documents(ids=ids, documents=docs, metadatas=metadatas, embeddings=embeddings)
+  File "/home/vini/Documents/RAG/src/vector_store/chroma_store.py", line 46, in add_documents
+    self.collection.add(**kwargs)
+  File "/home/vini/miniconda3/envs/rag/lib/python3.12/site-packages/chromadb/api/models/Collection.py", line 106, in add
+    add_request = self._validate_and_prepare_add_request(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vini/miniconda3/envs/rag/lib/python3.12/site-packages/chromadb/api/models/CollectionCommon.py", line 103, in wrapper
+    return func(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vini/miniconda3/envs/rag/lib/python3.12/site-packages/chromadb/api/models/CollectionCommon.py", line 235, in _validate_and_prepare_add_request
+    validate_insert_record_set(record_set=add_records)
+  File "/home/vini/miniconda3/envs/rag/lib/python3.12/site-packages/chromadb/api/types.py", line 445, in validate_insert_record_set
+    validate_ids(record_set["ids"])
+  File "/home/vini/miniconda3/envs/rag/lib/python3.12/site-packages/chromadb/api/types.py", line 1014, in validate_ids
+    raise errors.DuplicateIDError(message)
+chromadb.errors.DuplicateIDError: Expected IDs to be unique, found duplicates of: d9c6266dee3bea97918ab6f81ec334be3b1d831183932c02b7955eb4aedf2c13 in add.
+2026-01-19 16:31:03,016 [INFO] rag_system: Ingestion completed and state persisted.
+2026-01-19 16:31:44,824 [INFO] rag_system: Starting ingestion process...
+2026-01-19 16:31:44,825 [INFO] rag_system: Initialized in-memory document store for indexing.
+2026-01-19 16:31:45,039 [INFO] chromadb.telemetry.product.posthog: Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+2026-01-19 16:31:45,151 [INFO] rag_system: Skipping AN JO_Bem informado você escolhe bem_CNN Brasil.docx.pdf (already ingested).
+2026-01-19 16:31:45,152 [INFO] rag_system: Skipping AÇÃO DE ATIVAÇÃO_Copa dos Especialista_Sebrae.docx (already ingested).
+2026-01-19 16:31:45,152 [INFO] rag_system: Skipping AN RV – Feel Brazil_Apex.docx (already ingested).
+2026-01-19 16:31:45,152 [INFO] rag_system: No new content to index.
+2026-01-19 16:32:10,747 [INFO] rag_system: Starting ingestion process...
+2026-01-19 16:32:10,748 [INFO] rag_system: Initialized in-memory document store for indexing.
+2026-01-19 16:32:10,865 [INFO] chromadb.telemetry.product.posthog: Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+2026-01-19 16:32:10,978 [INFO] rag_system: Processing AN JO_Bem informado você escolhe bem_CNN Brasil.docx.pdf...
+2026-01-19 16:32:11,006 [INFO] rag_system: Processing AÇÃO DE ATIVAÇÃO_Copa dos Especialista_Sebrae.docx...
+2026-01-19 16:32:11,013 [INFO] rag_system: Processing AN RV – Feel Brazil_Apex.docx...
+2026-01-19 16:32:11,016 [INFO] rag_system: Indexing 4 chunks...
+2026-01-19 16:32:11,016 [INFO] haystack.core.pipeline.base: Warming up component embedder...
+2026-01-19 16:32:11,016 [INFO] sentence_transformers.SentenceTransformer: Load pretrained SentenceTransformer: BAAI/bge-m3
+2026-01-19 16:32:16,771 [INFO] haystack.core.pipeline.pipeline: Running component embedder
+2026-01-19 16:32:17,210 [INFO] haystack.core.pipeline.pipeline: Running component writer
+2026-01-19 16:32:17,211 [INFO] sentence_transformers.SentenceTransformer: Use pytorch device_name: cuda:0
+2026-01-19 16:32:17,211 [INFO] sentence_transformers.SentenceTransformer: Load pretrained SentenceTransformer: BAAI/bge-m3
+2026-01-19 16:32:23,952 [WARNING] src.vector_store.chroma_store: Chroma persist() failed: 'Client' object has no attribute 'persist'
+2026-01-19 16:32:23,953 [INFO] rag_system: Successfully persisted 4 documents to Chroma at /home/vini/Documents/RAG/vectorstore
+2026-01-19 16:32:23,953 [INFO] rag_system: Ingestion completed and state persisted.
+2026-01-19 16:47:57,214 [INFO] rag_system: Starting ingestion process...
+2026-01-19 16:47:57,214 [INFO] rag_system: Initialized ChromaDocumentStore at /home/vini/Documents/RAG/vectorstore
+2026-01-19 16:47:57,432 [INFO] rag_system: Processing AN JO_Bem informado você escolhe bem_CNN Brasil.docx.pdf...
+2026-01-19 16:47:57,459 [INFO] rag_system: Processing AÇÃO DE ATIVAÇÃO_Copa dos Especialista_Sebrae.docx...
+2026-01-19 16:47:57,467 [INFO] rag_system: Processing AN RV – Feel Brazil_Apex.docx...
+2026-01-19 16:47:57,469 [INFO] rag_system: Indexing 4 chunks into Chroma...
+2026-01-19 16:47:57,518 [INFO] haystack.core.pipeline.base: Warming up component embedder...
+2026-01-19 16:47:57,519 [INFO] sentence_transformers.SentenceTransformer: Load pretrained SentenceTransformer: BAAI/bge-m3
+2026-01-19 16:48:11,113 [INFO] haystack.core.pipeline.pipeline: Running component embedder
+2026-01-19 16:48:12,019 [INFO] haystack.core.pipeline.pipeline: Running component writer
+2026-01-19 16:48:12,027 [INFO] chromadb.telemetry.product.posthog: Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+2026-01-19 16:48:12,214 [INFO] rag_system: Successfully indexed and persisted 4 chunks.

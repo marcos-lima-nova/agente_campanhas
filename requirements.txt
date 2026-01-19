@@ -1,0 +1,12 @@
+haystack-ai
+fastapi
+uvicorn
+python-dotenv
+pypdf
+python-docx
+pydantic
+sentence-transformers
+transformers
+torch
+chromadb
+chroma-haystack
