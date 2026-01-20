@@ -10,3 +10,6 @@ transformers
 torch
 chromadb
 chroma-haystack
+python-multipart
+ requests
+open-webui
