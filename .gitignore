@@ -6,7 +6,7 @@ __pycache__/
 
 # General files
 *.pdf
-*.md
+summaries/
 *.bin
 *.sqlite3
 .webui_secret_key
