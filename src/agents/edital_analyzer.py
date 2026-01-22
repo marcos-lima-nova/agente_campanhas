@@ -89,26 +89,30 @@ Edital Content:
         ))
         self.pipeline.connect("prompt_builder", "llm")
 
-    def analyze_edital(self, file_bytes: bytes, filename: str, content_type: Optional[str] = None) -> Optional[str]:
+    def analyze_edital(self, file_bytes: bytes, filename: str, content_type: Optional[str] = None, content: Optional[str] = None) -> Optional[str]:
         """
-        Analyzes an edital provided as an attachment (bytes).
+        Analyzes an edital provided as an attachment (bytes) or pre-extracted content (str).
         Returns the generated summary markdown content.
         """
-        logger.info(f"Analyzing edital from attachment: {filename}")
+        logger.info(f"Analyzing edital: {filename}")
         
-        suffix = Path(filename).suffix.lower()
-        if suffix not in [".pdf", ".docx"]:
-            logger.error(f"Unsupported file type: {suffix}. Only .pdf and .docx are supported.")
-            return None
-
-        try:
-            content = self.processor.extract_text(file_bytes, filename=filename)
-            
-            if not content.strip():
-                logger.warning(f"No text extracted from {filename}")
+        # Validate file extension only if we need to extract from bytes
+        if not content:
+            suffix = Path(filename).suffix.lower()
+            if suffix not in [".pdf", ".docx"]:
+                logger.error(f"Unsupported file type for extraction: {suffix}. Only .pdf and .docx are supported.")
                 return None
 
-            logger.info(f"Extracted {len(content)} characters. Sending to LLM...")
+        try:
+            # Extract text if not already provided
+            if not content:
+                content = self.processor.extract_text(file_bytes, filename=filename)
+            
+            if not content or not content.strip():
+                logger.warning(f"No content available for analysis of {filename}")
+                return None
+
+            logger.info(f"Analyzing {len(content)} characters. Sending to LLM...")
 
             result = self.pipeline.run({
                 "prompt_builder": {"content": content}

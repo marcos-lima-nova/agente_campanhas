@@ -59,10 +59,18 @@ Keywords:
 The summary will be saved to `data/summaries/` and displayed in the terminal.
 
 ### 4. Start API Service
-To serve the RAG system for Open WebUI:
+To serve the RAG system and Document Analysis for Open WebUI:
 ```bash
-uvicorn src.ui.api:app --host 0.0.0.0 --port 8000
+python -m src.ui.server
 ```
+*Note: This starts the main service on port 8000.*
+
+### 5. Alternative Minimal API
+If you only need basic RAG without document analysis, you can run:
+```bash
+python -m src.ui.api
+```
+*Note: This starts on port 8001 by default to avoid conflicts.*
 
 ## Open WebUI Integration
 

@@ -1,25 +1,26 @@
 import re
+import logging
 
-BRIEFING_KEYWORDS = ["briefing", "brief", "brf"]
-EDITAL_KEYWORDS = ["edital", "tender", "rfp", "bid", "procurement"]
+logger = logging.getLogger(__name__)
+
+BRIEFING_KEYWORDS = ["briefing", "brief", "brf", "proposta", "campanha", "apresentação", "deck", "summary"]
+EDITAL_KEYWORDS = ["edital", "tender", "rfp", "bid", "procurement", "licitação", "termo de referência", "tr"]
 
 def classify_filename(filename: str) -> str:
     """
     Classifies a filename into 'briefing' or 'edital' based on keywords.
-    Returns the classification string or raises ValueError if unknown.
+    Returns 'briefing' as a default if no clear match is found.
     """
     fn_lower = filename.lower()
     
-    # Check for edital keywords first (RFPs are usually more specific)
+    # Check for edital keywords first
     if any(k in fn_lower for k in EDITAL_KEYWORDS):
         return "edital"
-        
+    
     # Check for briefing keywords
     if any(k in fn_lower for k in BRIEFING_KEYWORDS):
         return "briefing"
-        
-    raise ValueError(
-        f"Could not infer document type from filename: '{filename}'. "
-        f"Expected keywords for Briefing: {BRIEFING_KEYWORDS}. "
-        f"Expected keywords for Edital: {EDITAL_KEYWORDS}."
-    )
+    
+    # Default to briefing if unknown, but log it
+    logger.warning(f"Could not find clear keywords in '{filename}'. Defaulting to 'briefing'.")
+    return "briefing"

@@ -3,8 +3,9 @@ import sys
 import time
 import uuid
 import requests
+import json
 from pathlib import Path
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union
 
 # Add project root to sys.path
 project_root = Path(__file__).resolve().parents[2]
@@ -44,31 +45,22 @@ app = FastAPI(
     description="Backend for Open WebUI integration with Automatic Document Analysis and Attachment Support"
 )
 
-# --- Models ---
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    logger.info(f"Incoming request: {request.method} {request.url.path}")
+    response = await call_next(request)
+    logger.info(f"Response status: {response.status_code}")
+    return response
 
-class ChatRequest(BaseModel):
-    message: str
+# Analyzer focus models (these don't use RAG)
+ANALYZER_MODELS = ["gpt-4o-mini-analyzer", "unified-analyzer-agent"]
 
-class ChatResponse(BaseModel):
-    answer: str
-    sources: List[Dict[str, Any]]
-
-# OpenAI-compatible models
+# --- OpenAI-compatible models (Minimal for Model Listing) ---
 class OpenAIModel(BaseModel):
     id: str
     object: str = "model"
     created: int = int(time.time())
     owned_by: str = "marketing-agent"
-
-class OpenAIMessage(BaseModel):
-    role: str
-    content: str
-
-class OpenAIChatCompletionRequest(BaseModel, extra="allow"):
-    model: str
-    messages: List[OpenAIMessage]
-    stream: bool = False
-    files: Optional[List[Dict[str, Any]]] = None # Open WebUI sends this
 
 # --- Global Instances (Lazy Loaded) ---
 
@@ -76,7 +68,6 @@ class AppState:
     rag: Optional[RAGPipeline] = None
     orchestrator: Optional[DocumentOrchestrator] = None
     document_store: Optional[ChromaDocumentStore] = None
-    combined_pipeline: Optional[Pipeline] = None
 
 state = AppState()
 
@@ -97,36 +88,6 @@ def get_orchestrator():
         state.orchestrator = DocumentOrchestrator()
     return state.orchestrator
 
-def get_combined_pipeline():
-    if state.combined_pipeline is None:
-        template = """
-You are a senior marketing strategist. You have been provided with a Briefing Summary and an Edital (Bidding Document) Summary.
-Your task is to merge these two analyses into a single, cohesive "Strategic Alignment Report".
-
-Develop the document entirely in Portuguese-BR.
-
-Identify:
-1. Points of alignment (where the agency proposal meets the edital requirements).
-2. Potential gaps or risks (requirements in the edital not clearly addressed in the briefing).
-3. Recommended strategy to win the bid.
-
----
-Briefing Summary:
-{{briefing}}
-
----
-Edital Summary:
-{{edital}}
----
-        """
-        pipeline = Pipeline()
-        pipeline.add_component("prompt_builder", PromptBuilder(template=template))
-        api_key = Secret.from_token(OPENAI_API_KEY) if OPENAI_API_KEY else None
-        pipeline.add_component("llm", OpenAIGenerator(api_key=api_key, model="gpt-4o-mini"))
-        pipeline.connect("prompt_builder", "llm")
-        state.combined_pipeline = pipeline
-    return state.combined_pipeline
-
 # --- Utilities ---
 
 def fetch_file_from_webui(file_id: str) -> Optional[bytes]:
@@ -140,11 +101,31 @@ def fetch_file_from_webui(file_id: str) -> Optional[bytes]:
     
     try:
         response = requests.get(url, headers=headers, timeout=30)
+        if response.status_code != 200:
+            logger.error(f"Failed to fetch file {file_id} from Open WebUI. Status: {response.status_code}, Response: {response.text[:200]}")
         response.raise_for_status()
         return response.content
     except Exception as e:
-        logger.error(f"Failed to fetch file {file_id} from Open WebUI: {e}")
+        logger.error(f"Request error fetching file {file_id} from Open WebUI: {e}")
         return None
+
+def get_content_text(content: Any) -> str:
+    """Robust helper to extract text from any OpenAI message content format."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        # Handle multi-modal content list [ {"type": "text", "text": "..."}, ... ]
+        texts = []
+        for item in content:
+            if isinstance(item, dict):
+                if item.get("type") == "text":
+                    texts.append(item.get("text", ""))
+                elif "text" in item: # Fallback
+                    texts.append(item.get("text", ""))
+        return " ".join(texts)
+    if isinstance(content, dict):
+        return content.get("text", "")
+    return ""
 
 # --- Endpoints ---
 
@@ -172,93 +153,195 @@ async def health():
         "vector_store_path": str(VECTOR_STORE_PATH)
     }
 
-@app.post("/api/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest, rag: RAGPipeline = Depends(get_rag)):
-    try:
-        logger.info(f"Querying RAG: {request.message}")
-        result = rag.query(request.message)
-        return ChatResponse(
-            answer=result["answer"],
-            sources=result["sources"]
-        )
-    except Exception as e:
-        logger.error(f"Chat error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+def extract_from_source_tags(text: str) -> List[Dict[str, Any]]:
+    """
+    Parses <source name="..." id="..."> content from a string.
+    Returns a list of virtual file objects with 'content', 'name', and 'id'.
+    """
+    import re
+    # Pattern to match <source id="1" name="Briefing.pdf">content</source>
+    # We use non-greedy matching for content and allow for quotes and spacing
+    pattern = r'<source\s+id=["\']?(\d+)["\']?\s+name=["\']?([^"\'>]+)["\']?>(.*?)</source>'
+    matches = re.finditer(pattern, text, re.DOTALL | re.IGNORECASE)
+    
+    found = []
+    for m in matches:
+        found.append({
+            "id": m.group(1),
+            "name": m.group(2),
+            "content": m.group(3).strip(),
+            "type": "virtual" # Indicator for pre-extracted content
+        })
+    return found
 
-@app.post("/api/upload")
-async def upload_document(
-    file: UploadFile = File(...), 
-    orchestrator: DocumentOrchestrator = Depends(get_orchestrator)
-):
-    try:
-        logger.info(f"Received file for automatic analysis: {file.filename}")
-        file_bytes = await file.read()
-        result = orchestrator.analyze_document(file_bytes, file.filename, file.content_type)
-        return JSONResponse(content=result)
-    except ValueError as ve:
-        logger.warning(f"Classification failed: {ve}")
-        raise HTTPException(status_code=400, detail=str(ve))
-    except Exception as e:
-        logger.error(f"Upload processing error: {e}")
-        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
-
-# --- OpenAI Compatibility Adapter with Attachment Logic ---
-
-@app.get("/v1/models")
-async def list_models():
-    return {
-        "object": "list",
-        "data": [
-            OpenAIModel(id="marketing-rag-agent"),
-            OpenAIModel(id="gpt-4o-mini-analyzer")
-        ]
-    }
+def find_files_recursively(data: Any) -> List[Dict[str, Any]]:
+    """Recursively searches for file-like objects in the request body."""
+    found_files = []
+    if isinstance(data, dict):
+        # Check standard keys
+        for key in ["files", "attachments", "attached_files"]:
+            if key in data and isinstance(data[key], list):
+                for item in data[key]:
+                    if isinstance(item, dict) and ("id" in item or "file_id" in item):
+                        found_files.append(item)
+        
+        # Check for single file object
+        if "id" in data and "name" in data and ("meta" in data or "size" in data):
+             # This looks like a file object itself
+             found_files.append(data)
+             
+        # Recurse
+        for value in data.values():
+            found_files.extend(find_files_recursively(value))
+            
+    elif isinstance(data, list):
+        for item in data:
+            found_files.extend(find_files_recursively(item))
+            
+    return found_files
 
 @app.post("/v1/chat/completions")
 async def chat_completions(
-    request: OpenAIChatCompletionRequest, 
+    raw_request: Request, 
     rag: RAGPipeline = Depends(get_rag),
     orchestrator: DocumentOrchestrator = Depends(get_orchestrator)
 ):
-    # 1. Check for Attachments (files field from Open WebUI)
-    files = request.files or []
-    
-    # Also check if messages contain file references (sometimes Open WebUI sends them differently)
-    # For now, we trust the 'files' field which is standard in Open WebUI's custom provider calls.
-    
-    if files:
-        logger.info(f"Detected {len(files)} attachments in chat request.")
-        combined_markdown = ""
+    """
+    OpenAI-compatible chat completions endpoint.
+    Handles both regular RAG queries and automatic file analysis for attachments.
+    """
+    # 1. Flexible Request Parsing
+    try:
+        body = await raw_request.json()
+        model_id = body.get("model", "marketing-rag-agent")
+        is_analyzer = model_id in ANALYZER_MODELS
+        logger.info(f"--- NEW REQUEST ---")
+        logger.info(f"Model: {model_id}")
         
-        for file_info in files:
-            filename = file_info.get("name") or file_info.get("filename")
-            file_id = file_info.get("id")
+        # LOG ENTIRE BODY FOR INSPECTION (Debug only)
+        logger.debug(f"BODY KEYS: {list(body.keys())}")
+        logger.debug(f"RAW BODY: {json.dumps(body, indent=2)}")
+        
+        messages = body.get("messages", [])
+        
+        # Search for files everywhere
+        files = find_files_recursively(body)
+        
+        if files:
+            # Deduplicate by ID
+            unique_files = {}
+            for f in files:
+                fid = f.get("id") or f.get("file_id")
+                if fid:
+                    unique_files[fid] = f
+            files = list(unique_files.values())
+            logger.info(f"Resolved {len(files)} unique files from request body.")
+            for f in files:
+                logger.info(f"File found: {f.get('name') or f.get('filename')} (ID: {f.get('id') or f.get('file_id')})")
+        
+        # Fallback: Search for <source> tags in system/user messages
+        if is_analyzer and not files:
+            logger.info("No attached files found. Searching for <source> tags in messages...")
+            for msg in messages:
+                content_text = get_content_text(msg.get("content", ""))
+                if "<source" in content_text.lower():
+                    source_count = content_text.lower().count("<source")
+                    logger.info(f"Found {source_count} possible <source> tags in message {messages.index(msg)}. Running regex...")
+                    extracted = extract_from_source_tags(content_text)
+                    if extracted:
+                        logger.info(f"Extracted {len(extracted)} virtual files from <source> tags.")
+                        files.extend(extracted)
             
-            if not file_id or not filename:
-                continue
-                
-            logger.info(f"Processing attachment: {filename} (ID: {file_id})")
-            
-            # Fetch bytes from Open WebUI
-            file_bytes = fetch_file_from_webui(file_id)
-            if not file_bytes:
-                combined_markdown += f"\n\n**Erro:** Não foi possível acessar o arquivo '{filename}'. Verifique se o backend tem acesso à API do Open WebUI.\n"
-                continue
-                
+            # Deduplicate virtual files too
+            if files:
+                unique_files = {}
+                for f in files:
+                    fid = f.get("id") or f.get("file_id")
+                    if fid:
+                        unique_files[fid] = f
+                files = list(unique_files.values())
+
+        if not files:
+            logger.info("No files found in body or message context.")
+        
+    except Exception as e:
+        logger.error(f"Failed to parse JSON body: {e}")
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+
+    # 2. Handle Attachments (File Analysis Flow)
+    if files:
+        logger.info(f"Detected {len(files)} attachments for model {model_id}.")
+        logger.debug(f"Files metadata: {files}") # Log full metadata for debugging
+        
+        # Branch based on model type
+        if model_id == "unified-analyzer-agent":
+            # Unified batch analysis
             try:
-                result = orchestrator.analyze_document(file_bytes, filename)
-                combined_markdown += f"\n\n---\n### Análise de {filename}\n\n" + result["markdown"]
+                # Prepare file list for orchestrator
+                batch_files = []
+                for file_info in files:
+                    filename = file_info.get("name") or file_info.get("filename")
+                    file_id = file_info.get("id")
+                    if not file_id or not filename:
+                        continue
+                    
+                    extracted_content = file_info.get("content")
+                    if extracted_content:
+                         batch_files.append({"content": extracted_content, "name": filename, "id": file_id})
+                    else:
+                        file_bytes = fetch_file_from_webui(file_id)
+                        if file_bytes:
+                            batch_files.append({"bytes": file_bytes, "name": filename, "id": file_id})
+                
+                if not batch_files:
+                    logger.warning(f"Unified analyzer: No files could be fetched for model {model_id}.")
+                    raise HTTPException(status_code=400, detail="Certifique-se de que os arquivos foram enviados corretamente e o backend tem acesso à API do Open WebUI.")
+                
+                logger.info(f"Triggering unified analysis for {len(batch_files)} files.")
+                result = orchestrator.analyze_unified(batch_files)
+                combined_markdown = result["markdown"]
+                
             except Exception as e:
-                logger.error(f"Failed to analyze {filename} from chat: {e}")
-                combined_markdown += f"\n\n**Erro ao analisar {filename}:** {str(e)}\n"
+                logger.error(f"Unified analysis failed: {e}")
+                combined_markdown = f"**Erro na análise unificada:** {str(e)}"
+        
+        else:
+            # Individual sequential analysis (Default or gpt-4o-mini-analyzer)
+            combined_markdown = ""
+            for file_info in files:
+                filename = file_info.get("name") or file_info.get("filename")
+                file_id = file_info.get("id")
+                
+                if not file_id or not filename:
+                    logger.warning(f"Skipping incomplete file metadata: {file_info}")
+                    continue
+                    
+                logger.info(f"Processing (model: {model_id}): {filename} (ID: {file_id})")
+                
+                # Check if content is already available (virtual file)
+                extracted_content = file_info.get("content")
+                file_bytes = None
+                
+                if not extracted_content:
+                    file_bytes = fetch_file_from_webui(file_id)
+                
+                if not extracted_content and not file_bytes:
+                    combined_markdown += f"\n\n**Erro:** Não foi possível acessar o arquivo '{filename}'.\n"
+                    continue
+                    
+                try:
+                    result = orchestrator.analyze_document(file_bytes=file_bytes, filename=filename, content=extracted_content)
+                    combined_markdown += f"\n\n---\n### Análise de {filename}\n\n" + result["markdown"]
+                except Exception as e:
+                    logger.error(f"Failed to analyze {filename}: {e}")
+                    combined_markdown += f"\n\n**Erro ao analisar {filename}:** {str(e)}\n"
 
         if combined_markdown:
-            response_id = f"chatcmpl-{uuid.uuid4()}"
             return {
-                "id": response_id,
+                "id": f"chatcmpl-{uuid.uuid4()}",
                 "object": "chat.completion",
                 "created": int(time.time()),
-                "model": request.model,
+                "model": model_id,
                 "choices": [
                     {
                         "index": 0,
@@ -272,13 +355,37 @@ async def chat_completions(
                 "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
             }
 
-    # 2. Regular RAG Query if no attachments or analysis failed
-    user_msg = next((m.content for m in reversed(request.messages) if m.role == "user"), None)
+    # 3. Handle Analyzer Fallback (if no files or no markdown produced)
+    if is_analyzer:
+        error_msg = "Este agente requer um arquivo anexado (Briefing ou Edital) para realizar a análise."
+        if not files:
+            logger.warning(f"Analyzer model {model_id} called without files.")
+        else:
+            logger.warning(f"Analyzer model {model_id} produced no output.")
+            error_msg = "Não foi possível extrair dados dos arquivos enviados ou a análise falhou."
+            
+        return {
+            "id": f"chatcmpl-{uuid.uuid4()}",
+            "object": "chat.completion",
+            "created": int(time.time()),
+            "model": model_id,
+            "choices": [{"index": 0, "message": {"role": "assistant", "content": error_msg}, "finish_reason": "stop"}],
+            "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+        }
+
+    # 4. Regular RAG Query Flow
+    # Extract the last user message
+    user_msg_obj = next((m for m in reversed(messages) if m.get("role") == "user"), None)
+    user_msg = get_content_text(user_msg_obj.get("content")) if user_msg_obj else None
+    
     if not user_msg:
-        raise HTTPException(status_code=400, detail="No user message found.")
+        # Check if files were present but no text was found (only happens if combined_markdown was empty)
+        if files:
+            raise HTTPException(status_code=500, detail="Document analysis produced no results.")
+        raise HTTPException(status_code=400, detail="No user message found in request.")
 
     try:
-        logger.info(f"OpenAI Adapter received query: {user_msg}")
+        logger.info(f"Executing RAG query: {user_msg}")
         result = rag.query(user_msg)
         
         answer = result["answer"]
@@ -288,12 +395,11 @@ async def chat_completions(
             source_list = "\n\n**Fontes:**\n" + "\n".join([f"- {s.get('filename', 'Unknown')}" for s in sources])
             answer += source_list
 
-        response_id = f"chatcmpl-{uuid.uuid4()}"
         return {
-            "id": response_id,
+            "id": f"chatcmpl-{uuid.uuid4()}",
             "object": "chat.completion",
             "created": int(time.time()),
-            "model": request.model,
+            "model": model_id,
             "choices": [
                 {
                     "index": 0,
@@ -307,8 +413,20 @@ async def chat_completions(
             "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
         }
     except Exception as e:
-        logger.error(f"OpenAI Adapter error: {e}")
+        logger.error(f"RAG execution failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/v1/models")
+async def list_models():
+    """Returns a list of available models for Open WebUI."""
+    return {
+        "object": "list",
+        "data": [
+            OpenAIModel(id="marketing-rag-agent"),
+            OpenAIModel(id="gpt-4o-mini-analyzer"),
+            OpenAIModel(id="unified-analyzer-agent")
+        ]
+    }
 
 if __name__ == "__main__":
     import uvicorn
