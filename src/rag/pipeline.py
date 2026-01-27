@@ -23,12 +23,18 @@ class RAGPipeline:
         
         # 2. Setup Prompt Template
         template = """
-        Use the following pieces of context to answer the question at the end.
+        Use the following pieces of context to answer the question at the end. 
         If you don't know the answer, just say that you don't know, don't try to make up an answer.
 
-        Context:
+        ### Instructions:
+        - MANDATORY: For every piece of information you extract from the context, you MUST cite the source using the format `[SOURCE_N]` where N is the index provided in the context header.
+        - Only cite a source if it truly contributed to your answer.
+
+        ### Context:
         {% for document in documents %}
-            {{ document.content }}
+        --- [SOURCE_{{ loop.index0 }}] ---
+        Document: {{ document.meta.filename }}
+        Content: {{ document.content }}
         {% endfor %}
 
         Question: {{question}}
@@ -76,9 +82,23 @@ class RAGPipeline:
             # Formatting response
             answer = result["llm"]["replies"][0]
             
-            # Extract unique sources only from the retrieved documents
+            # 1. Extract used tags from answer
+            import re
+            used_indices = set(re.findall(r"\[SOURCE_(\d+)\]", answer))
+            used_indices = {int(idx) for idx in used_indices}
+            
+            # 2. Map indices back to retrieved documents
             retrieved_docs = result.get("retriever", {}).get("documents", [])
-            sources = self._get_unique_sources(retrieved_docs)
+            actively_used_docs = []
+            for i, doc in enumerate(retrieved_docs):
+                if i in used_indices:
+                    actively_used_docs.append(doc)
+            
+            # 3. Extract unique sources only from the actively used documents
+            sources = self._get_unique_sources(actively_used_docs)
+            
+            # Log results for audit
+            logger.info(f"Retrieved {len(retrieved_docs)} docs. Actively used {len(used_indices)} docs based on LLM citations.")
             
             return {
                 "answer": answer,
