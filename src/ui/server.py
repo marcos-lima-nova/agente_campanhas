@@ -301,6 +301,11 @@ async def chat_completions(
                 result = orchestrator.analyze_unified(batch_files)
                 combined_markdown = result["markdown"]
                 
+                # If unified also returns the warning, ensure it's the ONLY thing returned
+                if result.get("doc_type") == "invalid":
+                    logger.warning("Unified analysis aborted due to non-compliant file in batch.")
+                    combined_markdown = result["markdown"]
+                
             except Exception as e:
                 logger.error(f"Unified analysis failed: {e}")
                 combined_markdown = f"**Erro na análise unificada:** {str(e)}"
@@ -331,6 +336,12 @@ async def chat_completions(
                     
                 try:
                     result = orchestrator.analyze_document(file_bytes=file_bytes, filename=filename, content=extracted_content)
+                    
+                    if result.get("doc_type") == "invalid":
+                        logger.warning(f"Returning ONLY warning for non-compliant file: {filename}")
+                        combined_markdown = result["markdown"]
+                        break # Abort all other files
+                        
                     combined_markdown += f"\n\n---\n### Análise de {filename}\n\n" + result["markdown"]
                 except Exception as e:
                     logger.error(f"Failed to analyze {filename}: {e}")

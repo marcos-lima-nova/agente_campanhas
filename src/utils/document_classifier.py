@@ -3,24 +3,23 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-BRIEFING_KEYWORDS = ["briefing", "brief", "brf", "proposta", "campanha", "apresentação", "deck", "summary"]
-EDITAL_KEYWORDS = ["edital", "tender", "rfp", "bid", "procurement", "licitação", "termo de referência", "tr"]
+BRIEFING_VARIANTS = ["briefing", "breafing", "brefing", "briefng"]
+EDITAL_VARIANTS = ["edital", "editl", "edtial"]
 
 def classify_filename(filename: str) -> str:
     """
-    Classifies a filename into 'briefing' or 'edital' based on keywords.
-    Returns 'briefing' as a default if no clear match is found.
+    Classifies a filename into 'briefing' or 'edital' based on strict orthographic variants.
+    Returns 'invalid' if no mandatory keywords are detected.
     """
     fn_lower = filename.lower()
     
-    # Check for edital keywords first
-    if any(k in fn_lower for k in EDITAL_KEYWORDS):
+    # Check for edital variants
+    if any(v in fn_lower for v in EDITAL_VARIANTS):
         return "edital"
     
-    # Check for briefing keywords
-    if any(k in fn_lower for k in BRIEFING_KEYWORDS):
+    # Check for briefing variants
+    if any(v in fn_lower for v in BRIEFING_VARIANTS):
         return "briefing"
     
-    # Default to briefing if unknown, but log it
-    logger.warning(f"Could not find clear keywords in '{filename}'. Defaulting to 'briefing'.")
-    return "briefing"
+    logger.warning(f"File naming non-compliant: '{filename}'.")
+    return "invalid"

@@ -27,6 +27,15 @@ class DocumentOrchestrator:
         try:
             # 1. Mandatory Classification
             doc_type = classify_filename(filename)
+            
+            if doc_type == "invalid":
+                logger.warning(f"Aborting analysis for non-compliant file: {filename}")
+                return {
+                    "markdown": "Warning: The file is not valid because its name does not comply.",
+                    "filename": filename,
+                    "doc_type": "invalid"
+                }
+                
             logger.info(f"Automatically classified '{filename}' as {doc_type}")
             
             # 2. Mandatory Analysis Execution
@@ -79,6 +88,14 @@ class DocumentOrchestrator:
                 
                 # 2. Classify
                 doc_type = classify_filename(filename)
+
+                if doc_type == "invalid":
+                    logger.warning(f"Aborting unified analysis due to non-compliant file: {filename}")
+                    return {
+                        "markdown": "Warning: The file is not valid because its name does not comply.",
+                        "filename": filename,
+                        "doc_type": "invalid"
+                    }
                 
                 extracted_files.append({
                     "filename": filename,
