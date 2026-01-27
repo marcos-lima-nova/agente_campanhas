@@ -31,8 +31,9 @@ graph TD
 - `src/ui/`: FastAPI interfaces.
     - `server.py`: Primary OpenAI-compatible API (port 8000). Supports attachments.
     - `api.py`: Secondary RAG query-only API (port 8001).
-- `src/ingestion/`: Data extraction and chunking.
+- `src/ingestion/`: Recursive data extraction and chunking.
     - `processors.py`: Text extraction from PDF/DOCX and chunking logic.
+    - `run.py`: Recursive directory walker that maps files to clients based on folder structure.
 - `src/utils/`: Shared utilities (logging, classification).
 
 ## 4. Technical Stack & Dependencies
@@ -65,6 +66,7 @@ graph TD
 ## 7. Configuration & Environment
 Essential `.env` variables:
 - `OPENAI_API_KEY`: Required for LLM generation.
+- `REPERTORIO_FOLDER`: Path for bulk ingestion (default: `data/fichas_de_repertorio`). Supports recursive subdirectories (first level used as `client` name).
 - `VECTOR_STORE_PATH`: Path to ChromaDB persistence (default: `vectorstore/`).
 - `API_PORT`: Server port (default: 8000).
 - `OPEN_WEBUI_URL` & `OPEN_WEBUI_API_KEY`: Required for fetching attachments from Open WebUI.
