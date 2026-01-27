@@ -42,7 +42,7 @@ class RAGPipeline:
         self.pipeline.add_component("prompt_builder", PromptBuilder(template=template, required_variables=["documents", "question"]))
         
         # Using OpenAIGenerator for compatibility
-        self.pipeline.add_component("llm", OpenAIGenerator(model="gpt-3.5-turbo")) 
+        self.pipeline.add_component("llm", OpenAIGenerator(model="gpt-4.1-nano")) 
 
         # 4. Connect Components
         self.pipeline.connect("embedder.embedding", "retriever.query_embedding")

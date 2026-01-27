@@ -3,7 +3,7 @@
 This project provides a complete RAG (Retrieval-Augmented Generation) pipeline for processing marketing campaign documents in PDF and DOCX formats. It uses Haystack AI for ingestion, indexing, and retrieval.
 
 ## Features
-- **Folder-based Ingestion**: Automatically processes files in `data/inbox/`.
+- **Recursive Folder-based Ingestion**: Automatically processes files in `data/fichas_de_repertorio/` and its subdirectories, mapping them to clients based on folder names.
 - **Anti-Duplication**: Uses a manifest file (`data/manifest.json`) to skip already processed files.
 - **Support for PDF & DOCX**: Robust extraction and chunking.
 - **Local Vector Store**: Persists embeddings locally for fast retrieval.
@@ -28,7 +28,7 @@ This project provides a complete RAG (Retrieval-Augmented Generation) pipeline f
 ## Usage
 
 ### 1. Ingestion
-Place your PDF and DOCX files in `data/inbox/`. Then run:
+Place your PDF and DOCX files in `data/fichas_de_repertorio/`. You can organize them by client (e.g., `data/fichas_de_repertorio/ClientA/Project1/file.pdf`), and the system will automatically map the top-level folder name as the `client` metadata. Then run:
 ```bash
 python -m src.ingestion.run
 ```
@@ -81,7 +81,7 @@ Quick start:
 2. Connect to `http://localhost:8000/v1` as an OpenAI provider.
 
 ### Troubleshooting
-- If no files are found, check the `INBOX_FOLDER` path in `.env`.
+- If no files are found, check the `REPERTORIO_FOLDER` path in `.env`.
 - If memory is an issue, reduce `CHUNK_SIZE`.
 - The first run will download the embedding model (`BAAI/bge-m3`).
 - If the Briefing Agent times out, check your `OPENAI_API_KEY` and connection.
@@ -95,4 +95,4 @@ Quick start:
 - `src/ui/`: FastAPI integration.
 - `src/utils/`: Hashing, logging, and manifest management.
 - `data/summaries/`: Output storage for the Briefing Analysis Agent.
-- `data/inbox/`: Default folder for bulk ingestion.
+- `data/fichas_de_repertorio/`: Default folder for bulk ingestion.

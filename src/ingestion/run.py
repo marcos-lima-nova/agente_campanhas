@@ -18,7 +18,7 @@ import json
 
 # Load config
 load_dotenv()
-INBOX_FOLDER = Path(os.getenv("INBOX_FOLDER", "data/inbox"))
+REPERTORIO_FOLDER = Path(os.getenv("REPERTORIO_FOLDER", "data/fichas_de_repertorio"))
 MANIFEST_PATH = os.getenv("MANIFEST_PATH", "data/manifest.json")
 VECTOR_STORE_PATH = Path(os.getenv("VECTOR_STORE_PATH", "vectorstore/")).resolve()
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "BAAI/bge-m3")
@@ -43,32 +43,61 @@ def run_ingestion():
 
     indexer = IndexingPipeline(model_name=EMBEDDING_MODEL, document_store=document_store)
     
-    files_to_process = list(INBOX_FOLDER.glob("*.pdf")) + list(INBOX_FOLDER.glob("*.docx"))
+    # Recursive file discovery
+    files_to_process = []
+    extensions = ["*.pdf", "*.docx"]
+    for ext in extensions:
+        try:
+            # rglob handles recursive search
+            files_to_process.extend(list(REPERTORIO_FOLDER.rglob(ext)))
+        except PermissionError as pe:
+            logger.error(f"Permission denied while traversing {REPERTORIO_FOLDER}: {pe}")
+        except Exception as e:
+            logger.error(f"Unexpected error during directory traversal: {e}")
     
     if not files_to_process:
-        logger.info("No files found in inbox.")
+        logger.info(f"No files found in {REPERTORIO_FOLDER} or its subdirectories.")
         return
 
     all_chunks = []
     
     for file_path in files_to_process:
+        if not file_path.is_file():
+            continue
+            
         filename = file_path.name
-        file_hash = calculate_file_hash(file_path)
         
+        # Determine client based on directory structure
+        # data/fichas_de_repertorio/ClientName/Project/file.pdf -> ClientName
+        try:
+            relative_path = file_path.relative_to(REPERTORIO_FOLDER)
+            path_parts = relative_path.parts
+            client = path_parts[0] if len(path_parts) > 1 else "General"
+        except Exception:
+            client = "General"
+
+        try:
+            file_hash = calculate_file_hash(file_path)
+        except (PermissionError, OSError) as e:
+            logger.error(f"Could not access file {file_path}: {e}")
+            continue
+
         if manifest.is_already_ingested(file_hash, filename):
             logger.info(f"Skipping {filename} (already ingested).")
             continue
         
-        logger.info(f"Processing {filename}...")
+        logger.info(f"Processing {filename} (Client: {client})...")
         try:
             text = processor.extract_text(file_path)
             campaign = processor.infer_campaign(filename)
             metadata = {
                 "filename": filename,
                 "source_path": str(file_path),
+                "relative_path": str(relative_path),
                 "file_type": file_path.suffix,
                 "hash": file_hash,
-                "campaign": campaign
+                "campaign": campaign,
+                "client": client
             }
             
             chunks = processor.create_chunks(text, metadata)
