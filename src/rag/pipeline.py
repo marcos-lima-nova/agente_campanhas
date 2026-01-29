@@ -4,7 +4,7 @@ from typing import List, Dict, Any
 from haystack import Pipeline
 from haystack.components.embedders import SentenceTransformersTextEmbedder
 from haystack.components.builders import PromptBuilder
-from haystack.components.generators import OpenAIGenerator
+from src.utils.llm_factory import get_llm_generator
 from haystack_integrations.document_stores.chroma import ChromaDocumentStore
 from haystack_integrations.components.retrievers.chroma import ChromaEmbeddingRetriever
 import logging
@@ -47,8 +47,8 @@ class RAGPipeline:
         self.pipeline.add_component("retriever", ChromaEmbeddingRetriever(document_store=self.document_store, top_k=5))
         self.pipeline.add_component("prompt_builder", PromptBuilder(template=template, required_variables=["documents", "question"]))
         
-        # Using OpenAIGenerator for compatibility
-        self.pipeline.add_component("llm", OpenAIGenerator(model="gpt-4.1-nano")) 
+        # Initialize LLM via Factory
+        self.pipeline.add_component("llm", get_llm_generator(model_name="gpt-4o-mini")) 
 
         # 4. Connect Components
         self.pipeline.connect("embedder.embedding", "retriever.query_embedding")

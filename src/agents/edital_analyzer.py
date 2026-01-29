@@ -13,8 +13,7 @@ if str(project_root) not in sys.path:
 from dotenv import load_dotenv
 from haystack import Pipeline
 from haystack.components.builders import PromptBuilder
-from haystack.components.generators import OpenAIGenerator
-from haystack.utils import Secret
+from src.utils.llm_factory import get_llm_generator
 from src.utils.logging_config import setup_logging
 from src.ingestion.processors import DocumentProcessor
 
@@ -80,11 +79,9 @@ Edital Content:
         self.pipeline = Pipeline()
         self.pipeline.add_component("prompt_builder", PromptBuilder(template=template, required_variables=["content"]))
         
-        # Initialize LLM
-        api_key = Secret.from_token(OPENAI_API_KEY) if OPENAI_API_KEY else None
-        self.pipeline.add_component("llm", OpenAIGenerator(
-            api_key=api_key, 
-            model="gpt-4o-mini",
+        # Initialize LLM via Factory
+        self.pipeline.add_component("llm", get_llm_generator(
+            model_name="gpt-4o-mini",
             timeout=120.0
         ))
         self.pipeline.connect("prompt_builder", "llm")
