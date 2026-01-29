@@ -4,7 +4,7 @@ from pathlib import Path
 from src.agents.orchestrator import DocumentOrchestrator
 from src.utils.logging_config import setup_logging
 
-logger = setup_logging()
+logger = setup_logging("agents")
 
 def main():
     parser = argparse.ArgumentParser(description="Automatically analyze a briefing or edital based on filename.")

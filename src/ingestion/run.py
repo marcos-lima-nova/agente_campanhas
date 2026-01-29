@@ -25,7 +25,7 @@ EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "BAAI/bge-m3")
 CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "500"))
 CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "50"))
 
-logger = setup_logging()
+logger = setup_logging("ingestion")
 
 def run_ingestion():
     logger.info("Starting ingestion process...")
