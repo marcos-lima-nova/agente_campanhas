@@ -9,7 +9,7 @@ from src.utils.document_classifier import classify_filename
 from src.utils.logging_config import setup_logging
 from src.ingestion.processors import DocumentProcessor
 
-logger = setup_logging()
+logger = setup_logging("agents")
 
 class DocumentOrchestrator:
     def __init__(self):

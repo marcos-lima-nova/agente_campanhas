@@ -21,7 +21,7 @@ load_dotenv()
 SUMMARIES_FOLDER = Path("data/summaries")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-logger = setup_logging()
+logger = setup_logging("agents")
 
 class UnifiedAnalyzer:
     def __init__(self):

@@ -7,9 +7,9 @@ from haystack.components.builders import PromptBuilder
 from src.utils.llm_factory import get_llm_generator
 from haystack_integrations.document_stores.chroma import ChromaDocumentStore
 from haystack_integrations.components.retrievers.chroma import ChromaEmbeddingRetriever
-import logging
+from src.utils.logging_config import setup_logging
 
-logger = logging.getLogger(__name__)
+logger = setup_logging("rag")
 
 class RAGPipeline:
     def __init__(self, model_name: str = "BAAI/bge-m3", document_store: ChromaDocumentStore = None):

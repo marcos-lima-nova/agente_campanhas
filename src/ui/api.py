@@ -19,7 +19,7 @@ load_dotenv()
 VECTOR_STORE_PATH = Path(os.getenv("VECTOR_STORE_PATH", "vectorstore/")).resolve()
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "BAAI/bge-m3")
 
-logger = setup_logging()
+logger = setup_logging("api")
 app = FastAPI(title="Haystack RAG API", description="API for Open WebUI integration")
 
 class QueryRequest(BaseModel):

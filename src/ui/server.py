@@ -38,7 +38,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPEN_WEBUI_URL = os.getenv("OPEN_WEBUI_URL", "http://localhost:3000")
 OPEN_WEBUI_API_KEY = os.getenv("OPEN_WEBUI_API_KEY")
 
-logger = setup_logging()
+logger = setup_logging("api")
 
 app = FastAPI(
     title="Marketing Agent API", 
