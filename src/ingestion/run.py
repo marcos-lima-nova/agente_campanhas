@@ -11,8 +11,9 @@ from dotenv import load_dotenv
 from src.utils.logging_config import setup_logging
 from src.utils.hashing import calculate_file_hash
 from src.utils.manifest import ManifestManager
-from src.ingestion.processors import DocumentProcessor
-from src.indexing.pipeline import IndexingPipeline
+from src.ingestion.processors import DocumentProcessor, get_processor
+from src.indexing.pipeline import IndexingPipeline, LateChunkingPipeline
+from src.config import LateChunkingConfig
 from haystack_integrations.document_stores.chroma import ChromaDocumentStore
 import json
 
@@ -25,14 +26,38 @@ EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "BAAI/bge-m3")
 CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "500"))
 CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "50"))
 
+# Late chunking configuration
+USE_LATE_CHUNKING = os.getenv("USE_LATE_CHUNKING", "false").lower() in ("true", "1", "yes")
+MAX_TOKENS = int(os.getenv("MAX_TOKENS", "8192"))
+CHUNK_METHOD = os.getenv("CHUNK_METHOD", "sentence")
+POOLING_STRATEGY = os.getenv("POOLING_STRATEGY", "mean")
+OVERLAP_TOKENS = int(os.getenv("OVERLAP_TOKENS", "50"))
+
 logger = setup_logging("ingestion")
 
 def run_ingestion():
     logger.info("Starting ingestion process...")
+    logger.info(f"Late chunking enabled: {USE_LATE_CHUNKING}")
     
     manifest = ManifestManager(MANIFEST_PATH)
-    processor = DocumentProcessor(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
-    
+
+    # Build the appropriate processor and pipeline based on config
+    if USE_LATE_CHUNKING:
+        late_config = LateChunkingConfig(
+            MAX_TOKENS=MAX_TOKENS,
+            CHUNK_METHOD=CHUNK_METHOD,
+            POOLING_STRATEGY=POOLING_STRATEGY,
+            OVERLAP_TOKENS=OVERLAP_TOKENS,
+            EMBEDDING_MODEL=EMBEDDING_MODEL,
+        )
+        processor = get_processor(use_late_chunking=True, late_chunking_config=late_config)
+    else:
+        processor = get_processor(
+            use_late_chunking=False,
+            chunk_size=CHUNK_SIZE,
+            chunk_overlap=CHUNK_OVERLAP,
+        )
+
     # Use ChromaDocumentStore for persistence
     try:
         document_store = ChromaDocumentStore(persist_path=str(VECTOR_STORE_PATH), collection_name="documents")
@@ -41,7 +66,10 @@ def run_ingestion():
         logger.error(f"Failed to initialize ChromaDocumentStore: {e}")
         return
 
-    indexer = IndexingPipeline(model_name=EMBEDDING_MODEL, document_store=document_store)
+    if USE_LATE_CHUNKING:
+        indexer = LateChunkingPipeline(document_store=document_store)
+    else:
+        indexer = IndexingPipeline(model_name=EMBEDDING_MODEL, document_store=document_store)
     
     # Recursive file discovery
     files_to_process = []

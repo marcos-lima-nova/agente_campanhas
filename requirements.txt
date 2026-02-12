@@ -8,6 +8,7 @@ pydantic
 sentence-transformers
 transformers
 torch
+nltk
 chromadb
 chroma-haystack
 python-multipart
