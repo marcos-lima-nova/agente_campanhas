@@ -1,4 +1,5 @@
 import logging
+import time
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 
@@ -55,7 +56,9 @@ class DocumentOrchestrator:
             return {
                 "markdown": markdown,
                 "filename": f"{Path(filename).stem}_{doc_type}_summary.md",
-                "doc_type": doc_type
+                "doc_type": doc_type,
+                "timestamp": time.time(),
+                "analyzer_id": f"{doc_type}-analyzer",
             }
             
         except ValueError as ve:
@@ -118,5 +121,7 @@ class DocumentOrchestrator:
         return {
             "markdown": markdown,
             "filename": "unified_document_analysis.md",
-            "doc_type": "unified"
+            "doc_type": "unified",
+            "timestamp": time.time(),
+            "analyzer_id": "unified-analyzer",
         }

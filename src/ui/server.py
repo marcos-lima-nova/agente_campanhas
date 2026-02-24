@@ -19,7 +19,10 @@ from dotenv import load_dotenv
 
 from src.rag.pipeline import RAGPipeline
 from src.agents.orchestrator import DocumentOrchestrator
-from src.utils.logging_config import setup_logging
+from src.agents.conversation_orchestrator import ConversationOrchestrator
+from src.utils.logging_config import setup_logging, bind_session_id
+from src.utils.session_manager import SessionManager, AnalysisEntry
+from src.utils.diagnostics import AnalysisDiagnostics
 from haystack_integrations.document_stores.chroma import ChromaDocumentStore
 from haystack import Pipeline
 from haystack.components.builders import PromptBuilder
@@ -52,7 +55,10 @@ async def log_requests(request: Request, call_next):
     logger.info(f"Response status: {response.status_code}")
     return response
 
-# Analyzer focus models (these don't use RAG)
+# The new default orchestrated model — routes through ConversationOrchestrator
+ORCHESTRATED_MODELS = ["marketing-campaign-agent"]
+
+# Legacy analyzer models — kept for backward compatibility (these don't use RAG)
 ANALYZER_MODELS = ["gpt-4o-mini-analyzer", "unified-analyzer-agent"]
 
 # --- OpenAI-compatible models (Minimal for Model Listing) ---
@@ -65,13 +71,18 @@ class OpenAIModel(BaseModel):
 # --- Global Instances (Lazy Loaded) ---
 
 class AppState:
+    """Lazy-loaded singleton container for heavyweight components."""
+
     rag: Optional[RAGPipeline] = None
     orchestrator: Optional[DocumentOrchestrator] = None
+    conversation_orchestrator: Optional[ConversationOrchestrator] = None
     document_store: Optional[ChromaDocumentStore] = None
+    session_manager: Optional[SessionManager] = None
 
 state = AppState()
 
 def get_rag():
+    """Lazy-load and return the RAG pipeline singleton."""
     if state.rag is None:
         try:
             if state.document_store is None:
@@ -84,11 +95,71 @@ def get_rag():
     return state.rag
 
 def get_orchestrator():
+    """Lazy-load and return the legacy DocumentOrchestrator singleton."""
     if state.orchestrator is None:
         state.orchestrator = DocumentOrchestrator()
     return state.orchestrator
 
+def get_session_manager():
+    """Lazy-load and return the SessionManager singleton."""
+    if state.session_manager is None:
+        state.session_manager = SessionManager()
+        logger.info("SessionManager initialized.")
+    return state.session_manager
+
+def get_conversation_orchestrator():
+    """Lazy-load and return the ConversationOrchestrator singleton.
+
+    This is the single user-facing entrypoint for the ``marketing-campaign-agent``
+    model.  It is built on top of the existing DocumentOrchestrator, RAGPipeline,
+    and SessionManager, all of which are initialised lazily.
+    """
+    if state.conversation_orchestrator is None:
+        state.conversation_orchestrator = ConversationOrchestrator(
+            document_orchestrator=get_orchestrator(),
+            rag_pipeline=get_rag(),
+            session_manager=get_session_manager(),
+        )
+        logger.info("ConversationOrchestrator initialized.")
+    return state.conversation_orchestrator
+
 # --- Utilities ---
+
+def extract_session_from_messages(messages: List[Dict[str, Any]]) -> Optional[str]:
+    """
+    Fallback: extract a session_id from message-level metadata.
+    Looks for a system message containing a JSON block with ``session_id``.
+    """
+    import re as _re
+    for msg in messages:
+        if msg.get("role") != "system":
+            continue
+        content_text = get_content_text(msg.get("content", ""))
+        # Try JSON in the system message
+        try:
+            parsed = json.loads(content_text)
+            if isinstance(parsed, dict) and "session_id" in parsed:
+                return parsed["session_id"]
+        except (json.JSONDecodeError, TypeError):
+            pass
+        # Try inline key=value pattern
+        match = _re.search(r'session_id["\s:=]+([a-zA-Z0-9_-]+)', content_text)
+        if match:
+            return match.group(1)
+
+    # 3. Ultimate Fallback: Hash the first user message content
+    # This provides a stable ID for conversational threads in UIs like Open WebUI
+    # that preserve message history but don't send a top-level chat_id.
+    user_msgs = [m for m in messages if m.get("role") == "user"]
+    if user_msgs:
+        first_content = get_content_text(user_msgs[0].get("content", ""))
+        if first_content:
+            import hashlib as _hashlib
+            # Combine content with a prefix to avoid collisions with doc IDs
+            h = _hashlib.sha256(f"session:{first_content}".encode("utf-8", errors="ignore")).hexdigest()
+            return f"msg-{h[:16]}"
+
+    return None
 
 def fetch_file_from_webui(file_id: str) -> Optional[bytes]:
     """Fetches file bytes from Open WebUI API using a file ID."""
@@ -202,31 +273,107 @@ def find_files_recursively(data: Any) -> List[Dict[str, Any]]:
 
 @app.post("/v1/chat/completions")
 async def chat_completions(
-    raw_request: Request, 
+    raw_request: Request,
     rag: RAGPipeline = Depends(get_rag),
-    orchestrator: DocumentOrchestrator = Depends(get_orchestrator)
+    orchestrator: DocumentOrchestrator = Depends(get_orchestrator),
+    sm: SessionManager = Depends(get_session_manager),
+    conv_orchestrator: ConversationOrchestrator = Depends(get_conversation_orchestrator),
 ):
     """
     OpenAI-compatible chat completions endpoint.
-    Handles both regular RAG queries and automatic file analysis for attachments.
+
+    Routing
+    -------
+    - ``marketing-campaign-agent`` (default/new): routes through
+      ``ConversationOrchestrator``, which auto-detects intent and calls the
+      appropriate sub-agent(s).  Users never need to choose an agent manually.
+    - ``marketing-rag-agent``: legacy path — direct RAG query (backward compat).
+    - ``gpt-4o-mini-analyzer`` / ``unified-analyzer-agent``: legacy paths —
+      explicit document analysis (backward compat).
+
+    All paths support ``session_id`` in the request body (or in system-message
+    metadata) to persist context across turns.
     """
     # 1. Flexible Request Parsing
     try:
         body = await raw_request.json()
-        model_id = body.get("model", "marketing-rag-agent")
+        # Default to the new orchestrated model so users need not specify one
+        model_id = body.get("model", "marketing-campaign-agent")
+        is_orchestrated = model_id in ORCHESTRATED_MODELS
         is_analyzer = model_id in ANALYZER_MODELS
         logger.info(f"--- NEW REQUEST ---")
-        logger.info(f"Model: {model_id}")
-        
+        logger.info(f"Model: {model_id} (orchestrated={is_orchestrated})")
+
         # LOG ENTIRE BODY FOR INSPECTION (Debug only)
         logger.debug(f"BODY KEYS: {list(body.keys())}")
         logger.debug(f"RAW BODY: {json.dumps(body, indent=2)}")
-        
+
         messages = body.get("messages", [])
-        
-        # Search for files everywhere
+
+        # Search for files everywhere in the request body
         files = find_files_recursively(body)
+
+        # Extract the last user message text (needed for logging)
+        user_msg_obj = next((m for m in reversed(messages) if m.get("role") == "user"), None)
+        user_msg = get_content_text(user_msg_obj.get("content")) if user_msg_obj else ""
+
+        # Log entry for diagnostic tracing
+        AnalysisDiagnostics.log_event(
+            "REQUEST_ENTRY",
+            f"Incoming chat completion request for model '{model_id}'",
+            session_id=str(body.get("session_id") or body.get("chat_id") or "-"),
+            extra_state={
+                "model": model_id,
+                "num_files": len(files),
+                "all_body_keys": list(body.keys()),
+                "headers": dict(raw_request.headers),
+                "num_messages": len(messages),
+                "first_msg_role": messages[0].get("role") if messages else None,
+                "file_metadata": [
+                    {"id": f.get("id"), "name": f.get("name") or f.get("filename")} 
+                    for f in files
+                ],
+                "user_message_snippet": user_msg[:100]
+            }
+        )
+        # --- Session ID resolution ---
+        # Priority: chat_id (Open WebUI native) > session_id > system-message metadata > new session
+        # Open WebUI sends 'chat_id' for each conversation which is consistent across all messages
+        chat_id = body.get("chat_id")
+        incoming_session_id = (
+            chat_id or
+            body.get("session_id") or
+            extract_session_from_messages(messages)
+        )
+        session = sm.get_or_create_session(incoming_session_id)
+        bind_session_id(logger, session.session_id)
         
+        # Log the resolution result back to diagnostics
+        AnalysisDiagnostics.log_event(
+            "DECISION_POINT",
+            f"Resolved session ID: {session.session_id}",
+            session_id=session.session_id,
+            extra_state={
+                "incoming_id": incoming_session_id,
+                "is_new": not incoming_session_id,
+                "history_len": len(session.conversation_history)
+            }
+        )
+        logger.info(f"Session: {session.session_id} (chat_id={chat_id}, session_id={body.get('session_id')}, incoming={incoming_session_id})")
+        if incoming_session_id:
+            logger.info(f"[SESSION_PRESERVED] Reusing existing session: {incoming_session_id}")
+        else:
+            logger.warning(f"[SESSION_NEW] No session_id in request - created new session: {session.session_id}")
+        logger.debug(
+            f"Session state: documents_keys={list(session.documents.keys())}, "
+            f"active_document_id={session.active_document_id}, "
+            f"last_analysis={'present' if session.last_analysis else 'None'}, "
+            f"history_len={len(session.conversation_history)}"
+        )
+
+        # Search for files everywhere in the request body
+        files = find_files_recursively(body)
+
         if files:
             # Deduplicate by ID
             unique_files = {}
@@ -238,9 +385,10 @@ async def chat_completions(
             logger.info(f"Resolved {len(files)} unique files from request body.")
             for f in files:
                 logger.info(f"File found: {f.get('name') or f.get('filename')} (ID: {f.get('id') or f.get('file_id')})")
-        
+
         # Fallback: Search for <source> tags in system/user messages
-        if is_analyzer and not files:
+        # (applies to legacy analyzer models AND the orchestrated model)
+        if (is_analyzer or is_orchestrated) and not files:
             logger.info("No attached files found. Searching for <source> tags in messages...")
             for msg in messages:
                 content_text = get_content_text(msg.get("content", ""))
@@ -251,7 +399,7 @@ async def chat_completions(
                     if extracted:
                         logger.info(f"Extracted {len(extracted)} virtual files from <source> tags.")
                         files.extend(extracted)
-            
+
             # Deduplicate virtual files too
             if files:
                 unique_files = {}
@@ -263,12 +411,82 @@ async def chat_completions(
 
         if not files:
             logger.info("No files found in body or message context.")
-        
+
     except Exception as e:
         logger.error(f"Failed to parse JSON body: {e}")
         raise HTTPException(status_code=400, detail="Invalid JSON body")
 
-    # 2. Handle Attachments (File Analysis Flow)
+    # ── 2a. NEW: Orchestrated path — marketing-campaign-agent ───────────────
+    # The ConversationOrchestrator handles intent detection, routing, and
+    # shared-state management internally.  We only need to prepare the
+    # file descriptors (fetching bytes from Open WebUI when necessary) and
+    # pass everything to handle_message().
+    if is_orchestrated:
+        # Extract the last user message text
+        user_msg_obj = next((m for m in reversed(messages) if m.get("role") == "user"), None)
+        user_msg = get_content_text(user_msg_obj.get("content")) if user_msg_obj else ""
+
+        if not user_msg and not files:
+            raise HTTPException(status_code=400, detail="No user message found in request.")
+
+        # Resolve file bytes/content for the orchestrator
+        prepared_files: List[Dict[str, Any]] = []
+        for file_info in files:
+            filename = file_info.get("name") or file_info.get("filename", "document")
+            file_id = file_info.get("id")
+
+            # Virtual file (content already embedded via <source> tags)
+            if file_info.get("content"):
+                prepared_files.append({
+                    "name": filename,
+                    "id": file_id,
+                    "content": file_info["content"],
+                })
+                logger.debug(f"Prepared virtual file '{filename}' with content len={len(file_info['content'])}")
+                continue
+
+            # Real attachment — fetch bytes from Open WebUI
+            if file_id:
+                file_bytes = fetch_file_from_webui(file_id)
+                if file_bytes:
+                    prepared_files.append({
+                        "name": filename,
+                        "id": file_id,
+                        "bytes": file_bytes,
+                    })
+                    logger.debug(f"Prepared file '{filename}' with bytes len={len(file_bytes)}")
+                else:
+                    logger.warning(f"Could not fetch file '{filename}' (id={file_id}) from Open WebUI.")
+
+        try:
+            response_obj = conv_orchestrator.handle_message(
+                message=user_msg,
+                session_id=session.session_id,
+                files=prepared_files,
+            )
+        except Exception as exc:
+            logger.error(f"ConversationOrchestrator.handle_message failed: {exc}", exc_info=True)
+            raise HTTPException(status_code=500, detail=str(exc))
+
+        # Build OpenAI-compatible response
+        content = response_obj.content or "Não foi possível processar a solicitação."
+        return {
+            "id": f"chatcmpl-{uuid.uuid4()}",
+            "object": "chat.completion",
+            "created": int(time.time()),
+            "model": model_id,
+            "session_id": response_obj.session_id,
+            "choices": [
+                {
+                    "index": 0,
+                    "message": {"role": "assistant", "content": content},
+                    "finish_reason": "stop",
+                }
+            ],
+            "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
+        }
+
+    # ── 2b. LEGACY: Handle Attachments (File Analysis Flow) ─────────────────
     if files:
         logger.info(f"Detected {len(files)} attachments for model {model_id}.")
         logger.debug(f"Files metadata: {files}") # Log full metadata for debugging
@@ -305,6 +523,18 @@ async def chat_completions(
                 if result.get("doc_type") == "invalid":
                     logger.warning("Unified analysis aborted due to non-compliant file in batch.")
                     combined_markdown = result["markdown"]
+                else:
+                    # Persist structured output into session
+                    sm.append_extracted_context(
+                        session.session_id,
+                        AnalysisEntry(
+                            filename=result.get("filename", "unified_document_analysis.md"),
+                            doc_type=result.get("doc_type", "unified"),
+                            markdown=result["markdown"],
+                            timestamp=result.get("timestamp", time.time()),
+                            analyzer_id=result.get("analyzer_id", "unified-analyzer"),
+                        ),
+                    )
                 
             except Exception as e:
                 logger.error(f"Unified analysis failed: {e}")
@@ -334,25 +564,40 @@ async def chat_completions(
                     combined_markdown += f"\n\n**Erro:** Não foi possível acessar o arquivo '{filename}'.\n"
                     continue
                     
-                try:
-                    result = orchestrator.analyze_document(file_bytes=file_bytes, filename=filename, content=extracted_content)
-                    
-                    if result.get("doc_type") == "invalid":
-                        logger.warning(f"Returning ONLY warning for non-compliant file: {filename}")
-                        combined_markdown = result["markdown"]
-                        break # Abort all other files
+                    try:
+                        result = orchestrator.analyze_document(file_bytes=file_bytes, filename=filename, content=extracted_content)
                         
-                    combined_markdown += f"\n\n---\n### Análise de {filename}\n\n" + result["markdown"]
-                except Exception as e:
-                    logger.error(f"Failed to analyze {filename}: {e}")
-                    combined_markdown += f"\n\n**Erro ao analisar {filename}:** {str(e)}\n"
+                        if result.get("doc_type") == "invalid":
+                            logger.warning(f"Returning ONLY warning for non-compliant file: {filename}")
+                            combined_markdown = result["markdown"]
+                            break # Abort all other files
+                        
+                        # Persist structured output into session
+                        sm.append_extracted_context(
+                            session.session_id,
+                            AnalysisEntry(
+                                filename=result.get("filename", filename),
+                                doc_type=result.get("doc_type", "unknown"),
+                                markdown=result["markdown"],
+                                timestamp=result.get("timestamp", time.time()),
+                                analyzer_id=result.get("analyzer_id", model_id),
+                            ),
+                        )
+                            
+                        combined_markdown += f"\n\n---\n### Análise de {filename}\n\n" + result["markdown"]
+                    except Exception as e:
+                        logger.error(f"Failed to analyze {filename}: {e}")
+                        combined_markdown += f"\n\n**Erro ao analisar {filename}:** {str(e)}\n"
 
         if combined_markdown:
+            # Store assistant response in session history
+            sm.append_message(session.session_id, "assistant", combined_markdown.strip())
             return {
                 "id": f"chatcmpl-{uuid.uuid4()}",
                 "object": "chat.completion",
                 "created": int(time.time()),
                 "model": model_id,
+                "session_id": session.session_id,
                 "choices": [
                     {
                         "index": 0,
@@ -380,6 +625,7 @@ async def chat_completions(
             "object": "chat.completion",
             "created": int(time.time()),
             "model": model_id,
+            "session_id": session.session_id,
             "choices": [{"index": 0, "message": {"role": "assistant", "content": error_msg}, "finish_reason": "stop"}],
             "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
         }
@@ -395,9 +641,25 @@ async def chat_completions(
             raise HTTPException(status_code=500, detail="Document analysis produced no results.")
         raise HTTPException(status_code=400, detail="No user message found in request.")
 
+    # Store user message in session
+    sm.append_message(session.session_id, "user", user_msg)
+
     try:
-        logger.info(f"Executing RAG query: {user_msg}")
-        result = rag.query(user_msg)
+        # Use context-aware RAG when session has prior analysis data
+        current_session = sm.get_session(session.session_id)
+        conversation_history = current_session.conversation_history if current_session else []
+        extracted_context = current_session.extracted_context if current_session else []
+
+        if extracted_context or len(conversation_history) > 1:
+            logger.info(f"Using context-aware RAG (history={len(conversation_history)}, context={len(extracted_context)})")
+            result = rag.query_with_context(
+                question=user_msg,
+                conversation_history=conversation_history,
+                extracted_context=extracted_context,
+            )
+        else:
+            logger.info(f"Executing standard RAG query: {user_msg}")
+            result = rag.query(user_msg)
         
         answer = result["answer"]
         sources = result["sources"]
@@ -406,11 +668,15 @@ async def chat_completions(
             source_list = "\n\n**Fontes:**\n" + "\n".join([f"- {s.get('filename', 'Unknown')}" for s in sources])
             answer += source_list
 
+        # Store assistant response in session
+        sm.append_message(session.session_id, "assistant", answer)
+
         return {
             "id": f"chatcmpl-{uuid.uuid4()}",
             "object": "chat.completion",
             "created": int(time.time()),
             "model": model_id,
+            "session_id": session.session_id,
             "choices": [
                 {
                     "index": 0,
@@ -429,13 +695,19 @@ async def chat_completions(
 
 @app.get("/v1/models")
 async def list_models():
-    """Returns a list of available models for Open WebUI."""
+    """Returns a list of available models for Open WebUI.
+
+    ``marketing-campaign-agent`` is the recommended default.  It auto-detects
+    intent and routes to the correct sub-agent without user intervention.
+    The other three models are kept for backward compatibility.
+    """
     return {
         "object": "list",
         "data": [
-            OpenAIModel(id="marketing-rag-agent"),
-            OpenAIModel(id="gpt-4o-mini-analyzer"),
-            OpenAIModel(id="unified-analyzer-agent")
+            OpenAIModel(id="marketing-campaign-agent"),   # new: orchestrated default
+            OpenAIModel(id="marketing-rag-agent"),         # legacy: RAG-only
+            OpenAIModel(id="gpt-4o-mini-analyzer"),        # legacy: analysis-only
+            OpenAIModel(id="unified-analyzer-agent"),      # legacy: batch analysis
         ]
     }
 

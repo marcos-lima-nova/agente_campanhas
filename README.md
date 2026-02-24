@@ -80,19 +80,79 @@ Quick start:
 1. Run `python -m src.ui.server`.
 2. Connect to `http://localhost:8000/v1` as an OpenAI provider.
 
-### Troubleshooting
-- If no files are found, check the `REPERTORIO_FOLDER` path in `.env`.
-- If memory is an issue, reduce `CHUNK_SIZE`.
-- The first run will download the embedding model (`BAAI/bge-m3`).
 - If the Briefing Agent times out, check your `OPENAI_API_KEY` and connection.
 
+## Diagnostic Logging System (NEW)
+
+The system includes a comprehensive tracing layer to debug file analysis and RAG triggers.
+
+- **Trace Log**: Detailed decisions are recorded in `logs/file_analysis_trace.log`.
+- **Event Types**: Monitors `REQUEST_ENTRY`, `DECISION_POINT`, `ANALYSIS_START`, and `CACHE_HIT`.
+- **Stack Traces**: Each event includes a partial call stack and the current session state to identify why an analysis was triggered.
+
+Usage via code:
+```python
+from src.utils.diagnostics import AnalysisDiagnostics
+summary = AnalysisDiagnostics.get_summary() # Returns aggregated stats
+```
+
+## Session & Context Persistence (IMPROVED)
+
+The API now supports **session-based conversation state** so that analyzer outputs survive across requests and are automatically injected into subsequent RAG queries.
+
+### How it works
+1. **Multi-layer Resolution**: The server identifies the conversation using `chat_id`, `session_id`, or by **hashing the first user message** (stable fingerprinting).
+2. **State Management**: Analysis outputs are stored in the session and automatically injected into subsequent RAG queries via `query_with_context()`.
+3. **Document Stability**: Documents are tracked via `file_id` (from UI) or content hash, ensuring they aren't re-analyzed even if the transmission format changes.
+
+### API contract
+
+**Request** (optional `session_id`):
+```json
+{
+  "model": "marketing-rag-agent",
+  "session_id": "optional-session-id-123",
+  "messages": [
+    { "role": "user", "content": "What campaigns match this briefing?" }
+  ]
+}
+```
+
+**Response** (always includes `session_id`):
+```json
+{
+  "id": "chatcmpl-...",
+  "session_id": "session-id-456",
+  "choices": [ ... ]
+}
+```
+
+Clients that do not send `session_id` will receive a new one. The server also supports extracting `session_id` from system-message metadata as a fallback.
+
+### Configuration
+
+Add these to your `.env` (see `.env.example`):
+
+| Variable | Default | Description |
+|---|---|---|
+| `SESSION_BACKEND` | `memory` | `memory` or `redis` |
+| `REDIS_URL` | `redis://localhost:6379/0` | Redis connection URL (only when backend=redis) |
+| `SESSION_TTL_SECONDS` | `3600` | Session time-to-live in seconds |
+| `ENABLE_REDACTION` | `false` | Enable PII redaction before session storage |
+
+### Migration notes
+- **Backwards compatible**: Existing clients that do not send `session_id` continue to work. They will simply get a new session per request.
+- **New response field**: All `/v1/chat/completions` responses now include a top-level `session_id` field.
+- **No database required**: Default in-memory backend works out of the box. For production, configure Redis.
+
 ## Project Structure
-- `src/agents/`: Specialized agents (e.g., `briefing_analyzer.py`).
+- `src/agents/`: Specialized agents (e.g., `briefing_analyzer.py`, `unified_analyzer.py`).
 - `src/config/`: Configuration management.
 - `src/ingestion/`: Text extraction and chunking.
 - `src/indexing/`: Vector store and embedding logic.
-- `src/rag/`: Retrieval and generation pipelines.
-- `src/ui/`: FastAPI integration.
-- `src/utils/`: Hashing, logging, and manifest management.
+- `src/rag/`: Retrieval and generation pipelines (including `query_with_context()`).
+- `src/ui/`: FastAPI integration with session support and robust identifier resolution.
+- `src/utils/`: Hashing, diagnostics, session management, and manifest management.
+- `logs/file_analysis_trace.log`: Diagnostic trace logs for debugging RAG flow.
 - `data/summaries/`: Output storage for the Briefing Analysis Agent.
 - `data/fichas_de_repertorio/`: Default folder for bulk ingestion.
